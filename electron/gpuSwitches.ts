@@ -13,15 +13,33 @@ function normalizeLinuxWindowSystem(value: string | undefined): "wayland" | "x11
 	return null;
 }
 
-function getForcedLinuxWindowSystem(env: NodeJS.ProcessEnv): "wayland" | "x11" | null {
+function getOzoneSwitchValue(argv: readonly string[], name: string): string | undefined {
+	const prefix = `--${name}=`;
+	// Chromium uses the last occurrence of a repeated switch.
+	for (let i = argv.length - 1; i >= 0; i--) {
+		if (argv[i].startsWith(prefix)) {
+			return argv[i].slice(prefix.length);
+		}
+	}
+	return undefined;
+}
+
+function getForcedLinuxWindowSystem(
+	env: NodeJS.ProcessEnv,
+	argv: readonly string[],
+): "wayland" | "x11" | null {
+	// The --ozone-platform switch picks the backend Chromium actually uses, e.g.
+	// XWayland when launched with --ozone-platform=x11 from a Wayland session.
+	// ELECTRON_OZONE_PLATFORM_HINT is ignored by Electron 43, so it is not read.
 	return (
-		normalizeLinuxWindowSystem(env.OZONE_PLATFORM) ??
-		normalizeLinuxWindowSystem(env.ELECTRON_OZONE_PLATFORM_HINT)
+		normalizeLinuxWindowSystem(getOzoneSwitchValue(argv, "ozone-platform")) ??
+		normalizeLinuxWindowSystem(getOzoneSwitchValue(argv, "ozone-platform-hint")) ??
+		normalizeLinuxWindowSystem(env.OZONE_PLATFORM)
 	);
 }
 
-export function isLinuxX11Session(env: NodeJS.ProcessEnv): boolean {
-	const forcedWindowSystem = getForcedLinuxWindowSystem(env);
+export function isLinuxX11Session(env: NodeJS.ProcessEnv, argv: readonly string[] = []): boolean {
+	const forcedWindowSystem = getForcedLinuxWindowSystem(env, argv);
 	if (forcedWindowSystem === "wayland") {
 		return false;
 	}

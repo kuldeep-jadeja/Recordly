@@ -148,7 +148,7 @@ export function isHudOverlayMousePassthroughSupported(): boolean {
 // makes it override-redirect: the window manager ignores app-region drags, but
 // setBounds() works, so the drag IPC moves the window instead.
 export function isHudOverlayNativeDragRequired(): boolean {
-	return process.platform === "linux" && !isLinuxX11Session(process.env);
+	return process.platform === "linux" && !isLinuxX11Session(process.env, process.argv);
 }
 
 function loadHudOverlayCaptureProtectionSetting(): boolean {
